@@ -1,20 +1,21 @@
 #!/usr/bin/env python
+# pylint: disable=no-member,missing-docstring,invalid-name,unused-argument,multiple-statements
 import i3
 from gi.repository import Gtk, Gdk
 from gio import app_info_get_all
 
-I3_VETO_NAMES=("topdock","bottomdock","__i3_scratch")
+I3_VETO_NAMES = ("topdock", "bottomdock", "__i3_scratch")
 
 def filter_func(model, treeiter, user_data):
     query = entry.get_text().lower()
     value = model.get_value(treeiter, 0).lower()
-    for q in query.split(" "):
-        if q not in value: return False
+    for query_term in query.split(" "):
+        if query_term not in value: return False
     return True
 
 def sort_func(model, a, b, user_data):
-    a_id, b_id = model.get_value(a,1), model.get_value(b,1)
-    a_name, b_name = model.get_value(a,0), model.get_value(b,0)
+    a_id, b_id = model.get_value(a, 1), model.get_value(b, 1)
+    a_name, b_name = model.get_value(a, 0), model.get_value(b, 0)
     if a_id == -1 and b_id != -1:
         return -1
     elif a_id == -1 and b_id == -1 or (a_id > -1 and b_id > -1):
@@ -27,7 +28,7 @@ def sort_func(model, a, b, user_data):
 def selectFirst():
     if filterStore.get_iter_first():
         tree.get_selection().select_iter(filterStore.get_iter_first())
-        tree.set_cursor( filterStore.get_path( filterStore.get_iter_first() ) )
+        tree.set_cursor(filterStore.get_path(filterStore.get_iter_first()))
 
 def refilter(*_):
     filterStore.refilter()
@@ -43,23 +44,22 @@ def activate(*_):
         i3.command("exec %s"%apps[app_id].get_executable())
     Gtk.main_quit()
 
-def win_key_press(widget,event):
-    if Gdk.keyval_name( event.keyval ) == "Escape":
+def win_key_press(widget, event):
+    if Gdk.keyval_name(event.keyval) == "Escape":
         Gtk.main_quit()
-    elif not entry.is_focus(): 
+    elif not entry.is_focus():
         if event.string:
             entry.grab_focus()
 
-def tree_move_up(widget,event):
-    if Gdk.keyval_name( event.keyval ) == "Up":
+def tree_move_up(widget, event):
+    if Gdk.keyval_name(event.keyval) == "Up":
         (model, it) = widget.get_selection().get_selected()
         if model.get_string_from_iter(it) == "1":
-            itFst = model.get_iter_first()
-            tree.set_cursor( model.get_path( model.get_iter_first() ) )
+            tree.set_cursor(model.get_path(model.get_iter_first()))
             entry.grab_focus()
 
-def entry_move_down(widget,event):
-    if Gdk.keyval_name( event.keyval ) == "Down":
+def entry_move_down(widget, event):
+    if Gdk.keyval_name(event.keyval) == "Down":
         (model, it) = tree.get_selection().get_selected()
         itNext = model.iter_next(it)
         path = model.get_path(itNext)
@@ -72,7 +72,7 @@ win.add(box)
 entry = Gtk.Entry()
 box.pack_start(entry, False, False, 0)
 
-store = Gtk.ListStore(str,int,str,str)
+store = Gtk.ListStore(str, int, str, str)
 apps = dict()
 
 filterStore = Gtk.TreeModelFilter(child_model=store)
@@ -97,19 +97,19 @@ win.connect("delete-event", lambda *_: Gtk.main_quit())
 win.connect("focus-out-event", lambda *_: Gtk.main_quit())
 
 win.set_type_hint(Gdk.WindowTypeHint.DIALOG)
-win.set_default_size(400,300)
+win.set_default_size(400, 300)
 win.show_all()
 
 def fill_apps(*_):
     for con in i3.filter(type=4):
         if con['name'] in I3_VETO_NAMES: continue
-        store.append(["Workspace: " + con['name'], con['id'], "","gtk-home"])
+        store.append(["Workspace: " + con['name'], con['id'], "", "gtk-home"])
     for app in app_info_get_all():
         store.append([app.get_name(), -1, app.get_id(), "gtk-execute"])
-        apps[app.get_id()]=app
-    for con in i3.filter(type=2,nodes=[]):
+        apps[app.get_id()] = app
+    for con in i3.filter(type=2, nodes=[]):
         if con['name'] in I3_VETO_NAMES: continue
-        store.append(["Window: " + con['name'], con['id'], "","gtk-fullscreen"])
+        store.append(["App: " + con['name'], con['id'], "", "gtk-fullscreen"])
     selectFirst()
 
 Gdk.threads_add_idle(0, fill_apps, None)
