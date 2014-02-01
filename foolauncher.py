@@ -52,9 +52,18 @@ def win_key_press(widget,event):
 
 def tree_move_up(widget,event):
     if Gdk.keyval_name( event.keyval ) == "Up":
-        (model, it1) = widget.get_selection().get_selected()
-        if model.get_string_from_iter(it1) == "0":
+        (model, it) = widget.get_selection().get_selected()
+        if model.get_string_from_iter(it) == "1":
+            itFst = model.get_iter_first()
+            tree.set_cursor( model.get_path( model.get_iter_first() ) )
             entry.grab_focus()
+
+def entry_move_down(widget,event):
+    if Gdk.keyval_name( event.keyval ) == "Down":
+        (model, it) = tree.get_selection().get_selected()
+        itNext = model.iter_next(it)
+        path = model.get_path(itNext)
+        tree.set_cursor(path)
 
 win = Gtk.Window(title="foo Application Launcher")
 box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -80,6 +89,7 @@ filterStore.set_visible_func(filter_func)
 
 entry.connect("changed", refilter)
 entry.connect("activate", activate)
+entry.connect("key-press-event", entry_move_down)
 tree.connect("row-activated", activate)
 tree.connect("key-press-event", tree_move_up)
 win.connect("key-press-event", win_key_press)
