@@ -4,7 +4,7 @@ import i3
 from gi.repository import Gtk, Gdk, Keybinder
 from gio import app_info_get_all
 
-SHORTCUT="<Super>x"
+SHORTCUT="<Super>c"
 I3_VETO_NAMES = ("topdock", "bottomdock", "__i3_scratch")
 
 def filter_func(model, treeiter, user_data):

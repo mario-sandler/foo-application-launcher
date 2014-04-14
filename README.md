@@ -13,3 +13,5 @@ Dependencies
 	# or
 	pip install --user i3_py
 ````
+
+also needs python's gtk3 / including gir1.2-keybinder-3.0
