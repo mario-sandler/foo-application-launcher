@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # pylint: disable=no-member,missing-docstring,invalid-name,unused-argument,multiple-statements
 import i3
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Keybinder
 from gio import app_info_get_all
 
+SHORTCUT="<Super>x"
 I3_VETO_NAMES = ("topdock", "bottomdock", "__i3_scratch")
 
 def filter_func(model, treeiter, user_data):
@@ -39,14 +40,16 @@ def activate(*_):
     conid = model.get_value(treeiter, 1)
     if conid > -1:
         i3.command("[con_id={conid}] focus".format(conid=conid))
+    elif model.get_value(treeiter, 2) == "EXIT":
+        Gtk.main_quit()
     else:
         app_id = model.get_value(treeiter, 2)
         i3.command("exec %s"%apps[app_id].get_executable())
-    Gtk.main_quit()
+    win.hide()
 
 def win_key_press(widget, event):
     if Gdk.keyval_name(event.keyval) == "Escape":
-        Gtk.main_quit()
+        win.hide()
     elif not entry.is_focus():
         if event.string:
             entry.grab_focus()
@@ -93,12 +96,11 @@ entry.connect("key-press-event", entry_move_down)
 tree.connect("row-activated", activate)
 tree.connect("key-press-event", tree_move_up)
 win.connect("key-press-event", win_key_press)
-win.connect("delete-event", lambda *_: Gtk.main_quit())
-win.connect("focus-out-event", lambda *_: Gtk.main_quit())
+win.connect("delete-event", lambda *_: win.hide())
+win.connect("focus-out-event", lambda *_: win.hide())
 
 win.set_type_hint(Gdk.WindowTypeHint.DIALOG)
 win.set_default_size(400, 300)
-win.show_all()
 
 def fill_apps(*_):
     for con in i3.filter(type=4):
@@ -110,7 +112,19 @@ def fill_apps(*_):
     for con in i3.filter(type=2, nodes=[]):
         if con['name'] in I3_VETO_NAMES: continue
         store.append(["App: " + con['name'], con['id'], "", "gtk-fullscreen"])
+    store.append(["Exit foolauncher", -1, "EXIT", "gtk-quit"])
     selectFirst()
 
 Gdk.threads_add_idle(0, fill_apps, None)
-Gtk.main()
+
+def show(*data):
+    entry.set_text("")
+    refilter()
+    win.show_all()
+
+if __name__ == '__main__':
+    Keybinder.init()
+    if not Keybinder.bind(SHORTCUT, show, 'Show :)'): 
+        print "Keybinder.bind({shortcut}) failed.".format(SHORTCUT)
+    else:
+        Gtk.main()
