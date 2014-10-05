@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 # pylint: disable=no-member,missing-docstring,invalid-name,unused-argument,multiple-statements
 import i3
-from gi.repository import Gtk, Gdk, Keybinder
-from gio import app_info_get_all
+from gi.repository import Gtk, Gio, Gdk, Keybinder
 
-SHORTCUT="<Super>c"
+SHORTCUT = "<Super>c"
 I3_VETO_NAMES = ("topdock", "bottomdock", "__i3_scratch")
 
 def filter_func(model, treeiter, user_data):
     query = entry.get_text().lower()
-    value = model.get_value(treeiter, 0).lower()
+    label = model.get_value(treeiter, 0).lower()
+    entry_type = model.get_value(treeiter, 1)
+    if entry_type == -1:
+        app_id = model.get_value(treeiter, 2)
+        if app_id in apps.keys():
+            for query_term in query.split(" "):
+                if query_term in apps[app_id].get_executable(): return True
     for query_term in query.split(" "):
-        if query_term not in value: return False
-    return True
+        if query_term in label: return True
+    return False
 
 def sort_func(model, a, b, user_data):
     a_id, b_id = model.get_value(a, 1), model.get_value(b, 1)
@@ -44,7 +49,7 @@ def activate(*_):
         Gtk.main_quit()
     else:
         app_id = model.get_value(treeiter, 2)
-        i3.command("exec %s"%apps[app_id].get_executable())
+        i3.command("exec %s" % apps[app_id].get_executable())
     win.hide()
 
 def win_key_press(widget, event):
@@ -103,28 +108,29 @@ win.set_type_hint(Gdk.WindowTypeHint.DIALOG)
 win.set_default_size(400, 300)
 
 def fill_apps(*_):
-    for con in i3.filter(type=4):
-        if con['name'] in I3_VETO_NAMES: continue
-        store.append(["Workspace: " + con['name'], con['id'], "", "gtk-home"])
-    for app in app_info_get_all():
+    for con in i3.filter(type="workspace"):
+        if con["name"] in I3_VETO_NAMES: continue
+        store.append(["Workspace: " + con["name"], con["id"], "", "gtk-home"])
+    for app in Gio.app_info_get_all():
         store.append([app.get_name(), -1, app.get_id(), "gtk-execute"])
         apps[app.get_id()] = app
-    for con in i3.filter(type=2, nodes=[]):
-        if con['name'] in I3_VETO_NAMES: continue
-        store.append(["App: " + con['name'], con['id'], "", "gtk-fullscreen"])
-    store.append(["Exit foolauncher", -1, "EXIT", "gtk-quit"])
+    for con in i3.filter(type="con", nodes=[]):
+        if con["name"] in I3_VETO_NAMES: continue
+        store.append(["App: " + con["name"], con["id"], "", "gtk-fullscreen"])
+    store.append(["Exit foolauncher", -2, "EXIT", "gtk-quit"])
     selectFirst()
 
-Gdk.threads_add_idle(0, fill_apps, None)
 
 def show(*data):
     entry.set_text("")
+    store.clear()
+    fill_apps()
     refilter()
     win.show_all()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Keybinder.init()
-    if not Keybinder.bind(SHORTCUT, show, 'Show :)'): 
-        print "Keybinder.bind({shortcut}) failed.".format(SHORTCUT)
+    if not Keybinder.bind(SHORTCUT, show, "Show :)"):
+        print("Keybinder.bind({shortcut}) failed.".format(shortcut=SHORTCUT))
     else:
         Gtk.main()
